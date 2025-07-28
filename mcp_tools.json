@@ -5,7 +5,14 @@
       "args": [
         "-y",
         "@azure/mcp-server-azure"
-      ]
+      ],
+      "env": {
+        "AZURE_SUBSCRIPTION_ID": "1dce0fd2-024c-4807-8e0f-05fa605232c7",
+        "AZURE_TENANT_ID": "9eb558d5-593e-4ead-b5e4-3fae304735ed",
+        "AZURE_CLIENT_ID": "3d4a22a0-fda3-41ce-97d4-5e6df00c1bc", 
+        "AZURE_CLIENT_SECRET": "",
+        "AZURE_AUTH_METHOD": "service-principal"
+      }
     }
   }
 }

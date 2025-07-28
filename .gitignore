@@ -172,3 +172,4 @@ cython_debug/
 .azure
 
 src/ui/.env
+.env.azure
