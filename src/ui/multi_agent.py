@@ -1,5 +1,4 @@
 import os
-import asyncio
 import re
 import subprocess
 from pathlib import Path
@@ -7,10 +6,6 @@ from dotenv import load_dotenv
 
 from semantic_kernel.agents import AgentGroupChat, ChatCompletionAgent
 from semantic_kernel.agents.strategies.termination.termination_strategy import TerminationStrategy
-from semantic_kernel.agents.strategies.selection.kernel_function_selection_strategy import (
-    KernelFunctionSelectionStrategy,
-)
-from semantic_kernel.connectors.ai.function_choice_behavior import FunctionChoiceBehavior
 from semantic_kernel.connectors.ai.open_ai.services.azure_chat_completion import AzureChatCompletion
 from semantic_kernel.contents.chat_message_content import ChatMessageContent
 from semantic_kernel.contents.utils.author_role import AuthorRole
@@ -77,13 +72,38 @@ def save_html_to_file(html_content, filename="index.html"):
             f.write(html_content)
         print(f"HTML saved to {filepath.absolute()}")
         return str(filepath.absolute())
-    except Exception as e:
+    except OSError as e:
         print(f"Error saving HTML file: {e}")
         return None
 
-def create_git_script():
+def create_git_script(use_pat=False):
     """Create a bash script for Git operations."""
-    script_content = '''#!/bin/bash
+    if use_pat:
+        github_pat = os.getenv("GITHUB_PAT")
+        github_username = os.getenv("GITHUB_USERNAME") 
+        github_repo_url = os.getenv("GITHUB_REPO_URL")
+        
+        if github_pat and github_username and github_repo_url:
+            repo_path = github_repo_url.replace("https://github.com/", "")
+            authenticated_url = f"https://{github_username}:{github_pat}@github.com/{repo_path}"
+            
+            script_content = f'''#!/bin/bash
+# Git push script with PAT authentication
+git add .
+git commit -m "Auto-commit: HTML code approved and deployed"
+git push {authenticated_url} feature/jk
+echo "Code pushed to GitHub successfully with PAT authentication!"
+'''
+        else:
+            script_content = '''#!/bin/bash
+# Git push script (fallback to default auth)
+git add .
+git commit -m "Auto-commit: HTML code approved and deployed"
+git push origin feature/jk
+echo "Code pushed to GitHub successfully!"
+'''
+    else:
+        script_content = '''#!/bin/bash
 # Git push script
 git add .
 git commit -m "Auto-commit: HTML code approved and deployed"
@@ -101,58 +121,90 @@ echo "Code pushed to GitHub successfully!"
             os.chmod(script_path, 0o755)
         
         return str(script_path.absolute())
-    except Exception as e:
+    except OSError as e:
         print(f"Error creating Git script: {e}")
         return None
 
 def execute_git_push():
-    """Execute Git push using subprocess."""
+    """Execute Git push using subprocess with GitHub PAT authentication."""
+    git_success = True  # Initialize variable at the start
     try:
+        # Get GitHub credentials from environment
+        github_pat = os.getenv("GITHUB_PAT")
+        github_username = os.getenv("GITHUB_USERNAME")
+        github_repo_url = os.getenv("GITHUB_REPO_URL")
+        
         # For Windows, use PowerShell to execute git commands
         if os.name == 'nt':  # Windows
             commands = [
                 "git add .",
-                "git commit -m \"Auto-commit: HTML code approved and deployed\"",
-                "git push origin feature/jk"
+                "git commit -m \"Auto-commit: HTML code approved and deployed\""
             ]
             
-            git_success = True
+            # If PAT is available, use authenticated push
+            if github_pat and github_username and github_repo_url:
+                # Extract repo path from URL (e.g., "odl-user-1807581/capstone-project")
+                repo_path = github_repo_url.replace("https://github.com/", "")
+                authenticated_url = f"https://{github_username}:{github_pat}@github.com/{repo_path}"
+                push_command = f"git push {authenticated_url} feature/jk"
+                commands.append(push_command)
+                print("Using GitHub PAT for authentication...")
+            else:
+                commands.append("git push origin feature/jk")
+                print("Warning: GitHub PAT not found, using default authentication...")
+            
             for cmd in commands:
+                # Don't print the command if it contains the PAT token
+                display_cmd = cmd.replace(github_pat, "***") if github_pat and github_pat in cmd else cmd
+                
                 result = subprocess.run(
                     ["powershell", "-Command", cmd],
                     capture_output=True,
                     text=True,
-                    shell=True
+                    shell=True,
+                    check=False
                 )
-                print(f"Executed: {cmd}")
+                print(f"Executed: {display_cmd}")
                 if result.returncode != 0:
-                    print(f"Warning: {cmd} returned code {result.returncode}")
+                    print(f"Warning: {display_cmd} returned code {result.returncode}")
                     print(f"Error: {result.stderr}")
                     if "push" in cmd:
-                        print("Note: Git push failed - this may be due to authentication. Files are still saved locally.")
+                        if github_pat:
+                            print("Note: Git push failed even with PAT authentication. Check repository permissions.")
+                        else:
+                            print("Note: Git push failed - GitHub PAT not configured. Files are still saved locally.")
                         git_success = False
                 else:
                     print(f"Output: {result.stdout}")
         else:
             # Unix-like systems
-            script_path = create_git_script()
+            if github_pat and github_username and github_repo_url:
+                script_path = create_git_script(use_pat=True)
+                print("Using GitHub PAT for authentication...")
+            else:
+                script_path = create_git_script(use_pat=False)
+                print("Warning: GitHub PAT not found, using default authentication...")
+            
             if script_path:
-                result = subprocess.run(["bash", script_path], capture_output=True, text=True)
+                result = subprocess.run(
+                    ["bash", script_path], 
+                    capture_output=True, 
+                    text=True,
+                    check=False
+                )
                 print(f"Git script output: {result.stdout}")
                 if result.stderr:
                     print(f"Git script errors: {result.stderr}")
                     git_success = False
-                else:
-                    git_success = True
         
         print("Git automation completed!")
         return git_success
         
-    except Exception as e:
+    except (OSError, subprocess.SubprocessError) as e:
         print(f"Error executing Git operations: {e}")
         return False
 
-async def run_multi_agent(input: str):
+async def run_multi_agent(user_input: str):
     """Implement the multi-agent system."""
     
     # Create kernel for all agents
@@ -201,7 +253,7 @@ You are the Product Owner which will review the software engineer's code to ensu
 
     # Add the user input to start the conversation
     await group_chat.add_chat_message(
-        ChatMessageContent(role=AuthorRole.USER, content=input)
+        ChatMessageContent(role=AuthorRole.USER, content=user_input)
     )
 
     # Run the conversation
@@ -209,17 +261,27 @@ You are the Product Owner which will review the software engineer's code to ensu
     
     async for response in group_chat.invoke():
         # Handle different response types from semantic-kernel
-        if hasattr(response, 'message'):
-            agent_name = response.message.name if hasattr(response.message, 'name') else "System"
-            content = response.message.content if hasattr(response.message, 'content') else str(response.message)
-        else:
-            agent_name = response.name if hasattr(response, 'name') else "System"
-            content = response.content if hasattr(response, 'content') else str(response)
-        
-        responses.append({
-            "agent": agent_name,
-            "content": content
-        })
+        try:
+            if hasattr(response, 'message'):
+                agent_name = response.message.name if hasattr(response.message, 'name') else "System"
+                content = response.message.content if hasattr(response.message, 'content') else str(response.message)
+            else:
+                agent_name = response.name if hasattr(response, 'name') else "System"
+                content = response.content if hasattr(response, 'content') else str(response)
+            
+            responses.append({
+                "agent": agent_name,
+                "content": content
+            })
+        except (AttributeError, TypeError) as e:
+            print(f"Debug: Response processing error: {e}")
+            print(f"Debug: Response type: {type(response)}")
+            print(f"Debug: Response content: {response}")
+            # Fallback handling
+            responses.append({
+                "agent": "System",
+                "content": f"Response received: {str(response)}"
+            })
         
         # Check if we should terminate and handle approval
         if await termination_strategy.should_agent_terminate(None, group_chat.history):
