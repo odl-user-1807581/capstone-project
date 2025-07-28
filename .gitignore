@@ -170,3 +170,8 @@ cython_debug/
 # PyPI configuration file
 .pypirc
 .azure
+
+
+# JK
+.env.local
+src/ui/.env
