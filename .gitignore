@@ -171,7 +171,4 @@ cython_debug/
 .pypirc
 .azure
 
-
-# JK
-.env.local
 src/ui/.env
