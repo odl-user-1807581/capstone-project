@@ -111,7 +111,8 @@ git push origin main
 echo "Code pushed to GitHub successfully!"
 '''
     
-    script_path = Path("push_to_github.sh")
+    # Always create the script in the src/ui directory
+    script_path = Path(__file__).parent / "push_to_github.sh"
     try:
         with open(script_path, 'w', encoding='utf-8') as f:
             f.write(script_content)
@@ -137,9 +138,10 @@ def execute_git_push():
         # For Windows, use PowerShell to execute git commands
         if os.name == 'nt':  # Windows
             # Always add push_to_github.sh to the commit
+            script_path = Path(__file__).parent / "push_to_github.sh"
             commands = [
                 "git add .",
-                "git add push_to_github.sh",
+                f"git add {script_path}",
                 "git commit -m \"Auto-commit: HTML code approved and deployed\""
             ]
             # If PAT is available, use authenticated push
@@ -178,7 +180,8 @@ def execute_git_push():
             script_path = create_git_script(use_pat=bool(github_pat and github_username and github_repo_url))
             print("Using GitHub PAT for authentication..." if github_pat and github_username and github_repo_url else "Warning: GitHub PAT not found, using default authentication...")
             # Always add push_to_github.sh to the commit
-            subprocess.run(["git", "add", "push_to_github.sh"], check=False)
+            script_path = Path(__file__).parent / "push_to_github.sh"
+            subprocess.run(["git", "add", str(script_path)], check=False)
             if script_path:
                 result = subprocess.run(
                     ["bash", script_path], 
