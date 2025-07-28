@@ -88,13 +88,12 @@ def multi_agent():
                 st.session_state.multi_agent_history.append({"role": "user", "message": user_input})
                 with st.spinner("Agents are collaborating..."):
                     result = asyncio.run(run_multi_agent(user_input))
-                    # Fix: Extract messages from the result dictionary and map content to message
-                    for response in result["messages"]:
+                    # Iterate directly over the list of responses
+                    for response in result:
                         st.session_state.multi_agent_history.append({
-                            "role": response["role"],
+                            "role": response["agent"],
                             "message": response["content"]
                         })
-
             except Exception as e:
                 logging.error(f"Error in multi-agent system: {e}")
                 st.error("An error occurred while processing the multi-agent request.")
