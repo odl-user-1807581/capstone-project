@@ -1,1 +1,112 @@
-[code]
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contact Form</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background-color: #f4f4f4;
+    }
+    .contact-form {
+      background: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      width: 100%;
+      max-width: 400px;
+    }
+    .contact-form h1 {
+      margin-bottom: 20px;
+      font-size: 1.5em;
+      color: #333;
+    }
+    .contact-form label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    .contact-form input {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 15px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 1em;
+    }
+    .contact-form button {
+      width: 100%;
+      padding: 10px;
+      background-color: #007BFF;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      font-size: 1em;
+      cursor: pointer;
+    }
+    .contact-form button:hover {
+      background-color: #0056b3;
+    }
+    .error-message, .success-message {
+      font-size: 0.9em;
+      color: red;
+      margin-bottom: 10px;
+    }
+    .success-message {
+      color: green;
+    }
+  </style>
+  <script>
+    function validateForm(event) {
+      event.preventDefault(); // Prevent the form from submitting by default
+
+      const nameField = document.getElementById('name');
+      const emailField = document.getElementById('email');
+      const messageDisplay = document.getElementById('message');
+
+      const name = nameField.value.trim();
+      const email = emailField.value.trim();
+
+      let valid = true;
+
+      if (!name) {
+        messageDisplay.textContent = "Name is required.";
+        valid = false;
+      } else if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
+        messageDisplay.textContent = "Please provide a valid email address.";
+        valid = false;
+      } else {
+        messageDisplay.textContent = "";
+      }
+
+      if (valid) {
+        messageDisplay.textContent = "Form submitted successfully!";
+        messageDisplay.className = "success-message";
+        // Form reset for the demo
+        nameField.value = "";
+        emailField.value = "";
+      } else {
+        messageDisplay.className = "error-message";
+      }
+    }
+  </script>
+</head>
+<body>
+  <form class="contact-form" onsubmit="validateForm(event)">
+    <h1>Contact Us</h1>
+    <div id="message" class="error-message"></div>
+    <label for="name">Name</label>
+    <input type="text" id="name" name="name" placeholder="Enter your name" maxlength="100" required>
+    <label for="email">Email</label>
+    <input type="email" id="email" name="email" placeholder="Enter your email" maxlength="254" required>
+    <button type="submit">Submit</button>
+  </form>
+</body>
+</html>
