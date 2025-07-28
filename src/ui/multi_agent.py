@@ -78,33 +78,9 @@ def save_html_to_file(html_content, filename="index.html"):
 
 def create_git_script(use_pat=False):
     """Create a bash script for Git operations."""
-    if use_pat:
-        github_pat = os.getenv("GITHUB_PAT")
-        github_username = os.getenv("GITHUB_USERNAME") 
-        github_repo_url = os.getenv("GITHUB_REPO_URL")
-        
-        if github_pat and github_username and github_repo_url:
-            repo_path = github_repo_url.replace("https://github.com/", "")
-            authenticated_url = f"https://{github_username}:{github_pat}@github.com/{repo_path}"
-            
-            script_content = f'''#!/bin/bash
-# Git push script with PAT authentication
-git add .
-git commit -m "Auto-commit: HTML code approved and deployed"
-git push {authenticated_url} main
-echo "Code pushed to GitHub successfully with PAT authentication!"
-'''
-        else:
-            script_content = '''#!/bin/bash
-# Git push script (fallback to default auth)
-git add .
-git commit -m "Auto-commit: HTML code approved and deployed"
-git push origin main
-echo "Code pushed to GitHub successfully!"
-'''
-    else:
-        script_content = '''#!/bin/bash
-# Git push script
+    # Never include PAT in the script file - always use default auth
+    script_content = '''#!/bin/bash
+# Git push script (no secrets in file)
 git add .
 git commit -m "Auto-commit: HTML code approved and deployed"
 git push origin main
@@ -144,17 +120,20 @@ def execute_git_push():
                 f"git add {rel_script_path}",
                 "git commit -m \"Auto-commit: HTML code approved and deployed\""
             ]
-            # If PAT is available, use authenticated push
+            
+            # Use PAT authentication for push if available (for Azure/cloud deployment)
             if github_pat and github_username and github_repo_url:
                 repo_path = github_repo_url.replace("https://github.com/", "")
                 authenticated_url = f"https://{github_username}:{github_pat}@github.com/{repo_path}"
                 push_command = f"git push {authenticated_url} main"
                 commands.append(push_command)
-                print("Using GitHub PAT for authentication...")
+                print("Using GitHub PAT for authentication (cloud/Azure deployment)...")
             else:
                 commands.append("git push origin main")
-                print("Warning: GitHub PAT not found, using default authentication...")
+                print("Using default git push (local development with credential manager)...")
+            
             for cmd in commands:
+                # Mask PAT in display output for security
                 display_cmd = cmd.replace(github_pat, "***") if github_pat and github_pat in cmd else cmd
                 result = subprocess.run(
                     ["powershell", "-Command", cmd],
@@ -168,10 +147,7 @@ def execute_git_push():
                     print(f"Warning: {display_cmd} returned code {result.returncode}")
                     print(f"Error: {result.stderr}")
                     if "push" in cmd:
-                        if github_pat:
-                            print("Note: Git push failed even with PAT authentication. Check repository permissions.")
-                        else:
-                            print("Note: Git push failed - GitHub PAT not configured. Files are still saved locally.")
+                        print("Note: Git push failed. Files are still saved locally.")
                         git_success = False
                 else:
                     print(f"Output: {result.stdout}")
