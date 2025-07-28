@@ -297,7 +297,7 @@ You are the Product Owner which will review the software engineer's code to ensu
 async def run_multi_agent_task3(user_input: str):
     """
     Task 3 implementation: Run multi-agent conversation with specific output format.
-    This function implements the exact requirements for Task 3.
+    This function implements the requirements for Task 3.
     """
     # Create kernel for all agents
     kernel = create_kernel()
@@ -329,7 +329,7 @@ You are the Product Owner which will review the software engineer's code to ensu
     )
 
     product_owner = ChatCompletionAgent(
-        kernel=kernel, 
+        kernel=kernel,
         name="ProductOwner",
         instructions=product_owner_instructions,
     )
