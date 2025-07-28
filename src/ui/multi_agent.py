@@ -293,3 +293,130 @@ You are the Product Owner which will review the software engineer's code to ensu
             break
     
     return responses
+
+async def run_multi_agent_task3(user_input: str):
+    """
+    Task 3 implementation: Run multi-agent conversation with specific output format.
+    This function implements the exact requirements for Task 3.
+    """
+    # Create kernel for all agents
+    kernel = create_kernel()
+    
+    # Define personas and create agents (same as before)
+    business_analyst_instructions = """
+You are a Business Analyst which will take the requirements from the user (also known as a 'customer') and create a project plan for creating the requested app. The Business Analyst understands the user requirements and creates detailed documents with requirements and costing. The documents should be usable by the SoftwareEngineer as a reference for implementing the required features, and by the Product Owner for reference to determine if the application delivered by the Software Engineer meets all of the user's requirements.
+"""
+
+    software_engineer_instructions = """
+You are a Software Engineer, and your goal is create a web app using HTML and JavaScript by taking into consideration all the requirements given by the Business Analyst. The application should implement all the requested features. Deliver the code to the Product Owner for review when completed. You can also ask questions of the BusinessAnalyst to clarify any requirements that are unclear.
+"""
+
+    product_owner_instructions = """
+You are the Product Owner which will review the software engineer's code to ensure all user requirements are completed. You are the guardian of quality, ensuring the final product meets all specifications. IMPORTANT: Verify that the Software Engineer has shared the HTML code using the format ```html [code] ```. This format is required for the code to be saved and pushed to GitHub. Once all client requirements are completed and the code is properly formatted, reply with 'READY FOR USER APPROVAL'. If there are missing features or formatting issues, you will need to send a request back to the SoftwareEngineer or BusinessAnalyst with details of the defect.
+"""
+
+    # Create ChatCompletionAgent instances
+    business_analyst = ChatCompletionAgent(
+        kernel=kernel,
+        name="BusinessAnalyst",
+        instructions=business_analyst_instructions,
+    )
+
+    software_engineer = ChatCompletionAgent(
+        kernel=kernel,
+        name="SoftwareEngineer",
+        instructions=software_engineer_instructions,
+    )
+
+    product_owner = ChatCompletionAgent(
+        kernel=kernel, 
+        name="ProductOwner",
+        instructions=product_owner_instructions,
+    )
+
+    # Create execution settings with termination strategy
+    termination_strategy = ApprovalTerminationStrategy()
+
+    # Create AgentGroupChat
+    chat = AgentGroupChat(
+        agents=[business_analyst, software_engineer, product_owner],
+        termination_strategy=termination_strategy
+    )
+
+    # Task 3 Requirement: Send user message using add_chat_message
+    await chat.add_chat_message(
+        ChatMessageContent(role=AuthorRole.USER, content=user_input)
+    )
+
+    print(f"# User: '{user_input}'")
+    print("=" * 80)
+
+    # Task 3 Requirement: Iterate through responses with specific output format
+    async for content in chat.invoke():
+        # Extract role, name, and content from the response
+        if hasattr(content, 'message'):
+            role = content.message.role if hasattr(content.message, 'role') else "assistant"
+            name = content.message.name if hasattr(content.message, 'name') else '*'
+            message_content = content.message.content if hasattr(content.message, 'content') else str(content.message)
+        else:
+            role = content.role if hasattr(content, 'role') else "assistant"
+            name = content.name if hasattr(content, 'name') else '*'
+            message_content = content.content if hasattr(content, 'content') else str(content)
+        
+        # Task 3 Requirement: Print in specified format
+        print(f"# {role} - {name}: '{message_content}'")
+        print("-" * 40)
+        
+        # Check if we should terminate and handle approval
+        if await termination_strategy.should_agent_terminate(None, chat.history):
+            print("\n🎉 APPROVED detected! Starting automated Git push...")
+            print("=" * 80)
+            
+            # Always create push_to_github.sh for validation
+            create_git_script(use_pat=bool(os.getenv("GITHUB_PAT") and os.getenv("GITHUB_USERNAME") and os.getenv("GITHUB_REPO_URL")))
+            
+            # Extract HTML from chat history
+            html_content = extract_html_from_history(chat.history)
+            if html_content:
+                # Save HTML to file
+                saved_file = save_html_to_file(html_content)
+                if saved_file:
+                    # Execute Git push
+                    git_success = execute_git_push()
+                    if git_success:
+                        print(f"✅ Code approved and successfully pushed to GitHub! HTML saved as {saved_file}")
+                    else:
+                        print(f"✅ Code approved and saved locally! HTML saved as {saved_file}. Note: Git push may have failed due to permissions.")
+                else:
+                    print("❌ Failed to save HTML file")
+            else:
+                # Still run git automation to add/push the script
+                execute_git_push()
+                print("❌ No HTML code found in conversation history")
+            break
+
+# Main execution function for Task 3
+async def main():
+    """
+    Main function to run the Task 3 calculator app request.
+    """
+    calculator_request = """
+    I need you to build a calculator app. The calculator should:
+    1. Have a clean, user-friendly interface
+    2. Support basic arithmetic operations (addition, subtraction, multiplication, division)
+    3. Include a clear button to reset calculations
+    4. Display the current calculation and result clearly
+    5. Handle decimal numbers
+    6. Use HTML, CSS, and JavaScript
+    7. Be responsive and work on different screen sizes
+    
+    Please create a complete working calculator web application.
+    """
+    
+    print("🚀 Starting Multi-Agent Calculator App Development")
+    print("=" * 80)
+    await run_multi_agent_task3(calculator_request)
+
+if __name__ == "__main__":
+    import asyncio
+    asyncio.run(main())
