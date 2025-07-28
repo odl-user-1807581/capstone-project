@@ -84,9 +84,7 @@ def create_git_script(use_pat=False):
         github_repo_url = os.getenv("GITHUB_REPO_URL")
         
         if github_pat and github_username and github_repo_url:
-            repo_path = github_repo_url.replace("https://github.com/", "")            git status
-            git remote -v
-            git push origin main
+            repo_path = github_repo_url.replace("https://github.com/", "")
             authenticated_url = f"https://{github_username}:{github_pat}@github.com/{repo_path}"
             
             script_content = f'''#!/bin/bash

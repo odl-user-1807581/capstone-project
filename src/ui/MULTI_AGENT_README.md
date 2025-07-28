@@ -33,7 +33,7 @@ When "APPROVED" is detected:
 3. Creates and executes Git commands to:
    - Stage changes (`git add .`)
    - Commit with message ("Auto-commit: HTML code approved and deployed")
-   - Push to feature/jk branch (`git push origin feature/jk`)
+   - Push to main branch (`git push origin main`)
 
 ## Usage
 
