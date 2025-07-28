@@ -91,7 +91,7 @@ def create_git_script(use_pat=False):
 # Git push script with PAT authentication
 git add .
 git commit -m "Auto-commit: HTML code approved and deployed"
-git push {authenticated_url} feature/jk
+git push {authenticated_url} main
 echo "Code pushed to GitHub successfully with PAT authentication!"
 '''
         else:
@@ -99,7 +99,7 @@ echo "Code pushed to GitHub successfully with PAT authentication!"
 # Git push script (fallback to default auth)
 git add .
 git commit -m "Auto-commit: HTML code approved and deployed"
-git push origin feature/jk
+git push origin main
 echo "Code pushed to GitHub successfully!"
 '''
     else:
@@ -107,7 +107,7 @@ echo "Code pushed to GitHub successfully!"
 # Git push script
 git add .
 git commit -m "Auto-commit: HTML code approved and deployed"
-git push origin feature/jk
+git push origin main
 echo "Code pushed to GitHub successfully!"
 '''
     
@@ -146,11 +146,11 @@ def execute_git_push():
                 # Extract repo path from URL (e.g., "odl-user-1807581/capstone-project")
                 repo_path = github_repo_url.replace("https://github.com/", "")
                 authenticated_url = f"https://{github_username}:{github_pat}@github.com/{repo_path}"
-                push_command = f"git push {authenticated_url} feature/jk"
+                push_command = f"git push {authenticated_url} main"
                 commands.append(push_command)
                 print("Using GitHub PAT for authentication...")
             else:
-                commands.append("git push origin feature/jk")
+                commands.append("git push origin main")
                 print("Warning: GitHub PAT not found, using default authentication...")
             
             for cmd in commands:
