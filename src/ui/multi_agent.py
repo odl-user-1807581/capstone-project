@@ -71,6 +71,7 @@ def extract_html_from_history(history):
 def save_html_to_file(html_content, filename="index.html"):
     """Save HTML content to a file."""
     try:
+        # Save in the current directory (UI directory)
         filepath = Path(filename)
         with open(filepath, 'w', encoding='utf-8') as f:
             f.write(html_content)
@@ -115,6 +116,7 @@ def execute_git_push():
                 "git push origin feature/jk"
             ]
             
+            git_success = True
             for cmd in commands:
                 result = subprocess.run(
                     ["powershell", "-Command", cmd],
@@ -126,6 +128,9 @@ def execute_git_push():
                 if result.returncode != 0:
                     print(f"Warning: {cmd} returned code {result.returncode}")
                     print(f"Error: {result.stderr}")
+                    if "push" in cmd:
+                        print("Note: Git push failed - this may be due to authentication. Files are still saved locally.")
+                        git_success = False
                 else:
                     print(f"Output: {result.stdout}")
         else:
@@ -136,11 +141,16 @@ def execute_git_push():
                 print(f"Git script output: {result.stdout}")
                 if result.stderr:
                     print(f"Git script errors: {result.stderr}")
+                    git_success = False
+                else:
+                    git_success = True
         
-        print("Git push automation completed!")
+        print("Git automation completed!")
+        return git_success
         
     except Exception as e:
-        print(f"Error executing Git push: {e}")
+        print(f"Error executing Git operations: {e}")
+        return False
 
 async def run_multi_agent(input: str):
     """Implement the multi-agent system."""
@@ -198,9 +208,17 @@ You are the Product Owner which will review the software engineer's code to ensu
     responses = []
     
     async for response in group_chat.invoke():
+        # Handle different response types from semantic-kernel
+        if hasattr(response, 'message'):
+            agent_name = response.message.name if hasattr(response.message, 'name') else "System"
+            content = response.message.content if hasattr(response.message, 'content') else str(response.message)
+        else:
+            agent_name = response.name if hasattr(response, 'name') else "System"
+            content = response.content if hasattr(response, 'content') else str(response)
+        
         responses.append({
-            "agent": response.name if hasattr(response, 'name') else "System",
-            "content": response.content
+            "agent": agent_name,
+            "content": content
         })
         
         # Check if we should terminate and handle approval
@@ -216,12 +234,18 @@ You are the Product Owner which will review the software engineer's code to ensu
                 
                 if saved_file:
                     # Execute Git push
-                    execute_git_push()
+                    git_success = execute_git_push()
                     
-                    responses.append({
-                        "agent": "System",
-                        "content": f"✅ Code approved and automatically pushed to GitHub! HTML saved as {saved_file}"
-                    })
+                    if git_success:
+                        responses.append({
+                            "agent": "System",
+                            "content": f"✅ Code approved and successfully pushed to GitHub! HTML saved as {saved_file}"
+                        })
+                    else:
+                        responses.append({
+                            "agent": "System",
+                            "content": f"✅ Code approved and saved locally! HTML saved as {saved_file}. Note: Git push may have failed due to permissions."
+                        })
                 else:
                     responses.append({
                         "agent": "System", 
