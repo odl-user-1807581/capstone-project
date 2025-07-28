@@ -113,15 +113,15 @@ echo "Code pushed to GitHub successfully!"
     
     # Always create the script in the src/ui directory
     script_path = Path(__file__).parent / "push_to_github.sh"
+    # Also return the relative path for git operations
+    rel_script_path = "src/ui/push_to_github.sh"
     try:
         with open(script_path, 'w', encoding='utf-8') as f:
             f.write(script_content)
-        
         # Make script executable on Unix-like systems
         if os.name != 'nt':  # Not Windows
             os.chmod(script_path, 0o755)
-        
-        return str(script_path.absolute())
+        return rel_script_path
     except OSError as e:
         print(f"Error creating Git script: {e}")
         return None
@@ -138,10 +138,10 @@ def execute_git_push():
         # For Windows, use PowerShell to execute git commands
         if os.name == 'nt':  # Windows
             # Always add push_to_github.sh to the commit
-            script_path = Path(__file__).parent / "push_to_github.sh"
+            rel_script_path = "src/ui/push_to_github.sh"
             commands = [
                 "git add .",
-                f"git add {script_path}",
+                f"git add {rel_script_path}",
                 "git commit -m \"Auto-commit: HTML code approved and deployed\""
             ]
             # If PAT is available, use authenticated push
@@ -177,14 +177,13 @@ def execute_git_push():
                     print(f"Output: {result.stdout}")
         else:
             # Unix-like systems
-            script_path = create_git_script(use_pat=bool(github_pat and github_username and github_repo_url))
+            rel_script_path = create_git_script(use_pat=bool(github_pat and github_username and github_repo_url))
             print("Using GitHub PAT for authentication..." if github_pat and github_username and github_repo_url else "Warning: GitHub PAT not found, using default authentication...")
-            # Always add push_to_github.sh to the commit
-            script_path = Path(__file__).parent / "push_to_github.sh"
-            subprocess.run(["git", "add", str(script_path)], check=False)
-            if script_path:
+            subprocess.run(["git", "add", rel_script_path], check=False)
+            if rel_script_path:
+                abs_script_path = Path(__file__).parent / "push_to_github.sh"
                 result = subprocess.run(
-                    ["bash", script_path], 
+                    ["bash", str(abs_script_path)], 
                     capture_output=True, 
                     text=True,
                     check=False
