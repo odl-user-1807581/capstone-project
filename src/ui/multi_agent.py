@@ -60,19 +60,12 @@ def extract_html_from_history(history):
     """Extract HTML code from chat history."""
     html_pattern = r'```html\s*(.*?)\s*```'
     
-    print(f"Extracting HTML from {len(history)} messages...")
-    
-    for i, message in enumerate(reversed(history)):  # Start from the most recent messages
+    for message in reversed(history):  # Start from the most recent messages
         if hasattr(message, 'content') and message.content:
-            print(f"Checking message {i}: {message.content[:100]}...")
             matches = re.findall(html_pattern, message.content, re.DOTALL | re.IGNORECASE)
             if matches:
-                print(f"Found {len(matches)} HTML blocks in message {i}")
-                html_content = matches[-1].strip()  # Return the last HTML block found
-                print(f"Extracted HTML length: {len(html_content)} characters")
-                return html_content
+                return matches[-1].strip()  # Return the last HTML block found
     
-    print("No HTML blocks found in chat history")
     return None
 
 def save_html_to_file(html_content, filename="index.html"):
