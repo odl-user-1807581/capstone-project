@@ -136,14 +136,14 @@ def execute_git_push():
         
         # For Windows, use PowerShell to execute git commands
         if os.name == 'nt':  # Windows
+            # Always add push_to_github.sh to the commit
             commands = [
                 "git add .",
+                "git add push_to_github.sh",
                 "git commit -m \"Auto-commit: HTML code approved and deployed\""
             ]
-            
             # If PAT is available, use authenticated push
             if github_pat and github_username and github_repo_url:
-                # Extract repo path from URL (e.g., "odl-user-1807581/capstone-project")
                 repo_path = github_repo_url.replace("https://github.com/", "")
                 authenticated_url = f"https://{github_username}:{github_pat}@github.com/{repo_path}"
                 push_command = f"git push {authenticated_url} main"
@@ -152,11 +152,8 @@ def execute_git_push():
             else:
                 commands.append("git push origin main")
                 print("Warning: GitHub PAT not found, using default authentication...")
-            
             for cmd in commands:
-                # Don't print the command if it contains the PAT token
                 display_cmd = cmd.replace(github_pat, "***") if github_pat and github_pat in cmd else cmd
-                
                 result = subprocess.run(
                     ["powershell", "-Command", cmd],
                     capture_output=True,
@@ -178,13 +175,10 @@ def execute_git_push():
                     print(f"Output: {result.stdout}")
         else:
             # Unix-like systems
-            if github_pat and github_username and github_repo_url:
-                script_path = create_git_script(use_pat=True)
-                print("Using GitHub PAT for authentication...")
-            else:
-                script_path = create_git_script(use_pat=False)
-                print("Warning: GitHub PAT not found, using default authentication...")
-            
+            script_path = create_git_script(use_pat=bool(github_pat and github_username and github_repo_url))
+            print("Using GitHub PAT for authentication..." if github_pat and github_username and github_repo_url else "Warning: GitHub PAT not found, using default authentication...")
+            # Always add push_to_github.sh to the commit
+            subprocess.run(["git", "add", "push_to_github.sh"], check=False)
             if script_path:
                 result = subprocess.run(
                     ["bash", script_path], 
