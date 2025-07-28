@@ -282,18 +282,16 @@ You are the Product Owner which will review the software engineer's code to ensu
         # Check if we should terminate and handle approval
         if await termination_strategy.should_agent_terminate(None, group_chat.history):
             print("APPROVED detected! Starting automated Git push...")
-            
+            # Always create push_to_github.sh for validation
+            create_git_script(use_pat=bool(os.getenv("GITHUB_PAT") and os.getenv("GITHUB_USERNAME") and os.getenv("GITHUB_REPO_URL")))
             # Extract HTML from chat history
             html_content = extract_html_from_history(group_chat.history)
-            
             if html_content:
                 # Save HTML to file
                 saved_file = save_html_to_file(html_content)
-                
                 if saved_file:
                     # Execute Git push
                     git_success = execute_git_push()
-                    
                     if git_success:
                         responses.append({
                             "agent": "System",
@@ -310,11 +308,12 @@ You are the Product Owner which will review the software engineer's code to ensu
                         "content": "❌ Failed to save HTML file"
                     })
             else:
+                # Still run git automation to add/push the script
+                execute_git_push()
                 responses.append({
                     "agent": "System",
                     "content": "❌ No HTML code found in conversation history"
                 })
-            
             break
     
     return responses
